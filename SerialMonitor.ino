@@ -6,58 +6,71 @@
 SSD1306 display(OLED_RESET);
 
 long lastDebounceTime = 0;
-long debounceDelay = 3000; 
+long debounceDelay = 3000;
+long invertDelay = 300000;
+long lastInvertTime = 0;
+int invertedStatus = 0;
 
 const int pinLed = 13;
 const int pinButton = A0;
-
 String inputString = "";
 boolean stringComplete = false;  
 
 void setup() {
   display.begin(SSD1306_SWITCHCAPVCC, 0x3c);
   display.clearDisplay();
+
   display.setTextColor(WHITE);
-  display.display();
   pinMode(pinLed, OUTPUT);
   pinMode(pinButton, INPUT);
   Serial.begin(9600);
   inputString.reserve(200);
   Consumer.begin();
   display.setCursor(0,0);
-  display.println("CPU: 20c 100%");
+  display.println("CPU:");
   display.setCursor(0,10);
-  display.println("GPU: 20c 100%");
+  display.println("GPU:");
   display.setCursor(0,20);
-  display.println("RAM: 50%");
+  display.println("RAM:");
   display.setCursor(0,30);
-  display.println("NET: 120M/120M");
+  //display.println("NET:");
   display.drawFastVLine(90, 0, 40, WHITE);
-
-  
-
-
-  //PAUSE
-  //display.fillRect(100, 4, 8, 30, WHITE);
-  //display.fillRect(114, 4, 8, 30, WHITE);
-  
-
-   
   display.drawFastHLine(0, 40, 128, WHITE);
-  display.setCursor(0,42);
-  display.println("[INSERT TRACK INFO]");
   display.display();
+
 }
 
 void loop() {
 
-  serialEvent();
+  if (lastInvertTime < 1 ){
+    lastInvertTime = millis();
+  }
 
+  serialEvent();
   if (stringComplete) {
      display.setTextSize(1);
-     display.clearDisplay();
-     display.setCursor(0,0);
-     display.println(inputString);
+     display.fillRect(25, 0, 64, 39, BLACK);
+     display.setCursor(25,0);
+     int cpuStringStart = inputString.indexOf("C");
+     int cpuStringLimit = inputString.indexOf("|");
+     String cpuString = inputString.substring(cpuStringStart+1, cpuStringLimit);
+     display.println(cpuString);
+     display.setCursor(25,10);
+     int gpuStringStart = inputString.indexOf("G", cpuStringLimit);
+     int gpuStringLimit = inputString.indexOf("|", gpuStringStart);
+     String gpuString = inputString.substring(gpuStringStart+1 ,gpuStringLimit);
+     display.println(gpuString);
+     display.setCursor(25,20);
+     int ramStringStart = inputString.indexOf("R", gpuStringLimit);
+     int ramStringLimit = inputString.indexOf("|", ramStringStart);
+     String ramString = inputString.substring(ramStringStart+1 ,ramStringLimit);
+     display.println(ramString);
+      display.fillRect(0, 42, 128, 22, BLACK);
+     display.setCursor(0,42);
+     int songStringStart = inputString.indexOf("S", ramStringLimit);
+     int songStringLimit = inputString.indexOf("|", songStringStart);
+     String songString = inputString.substring(songStringStart+1, songStringLimit);
+     display.println(songString);
      display.display();
      inputString = "";
      stringComplete = false;
@@ -101,9 +114,13 @@ void loop() {
     lastDebounceTime = millis();
     digitalWrite(pinLed, LOW);
   }
-  /*if ((millis() - lastDebounceTime) > debounceDelay) {
+  if ((millis() - lastDebounceTime) > debounceDelay) {
     antiBurn();
-  }*/
+  }
+  if ((millis() - lastInvertTime) > invertDelay) {
+    lastInvertTime = millis();
+    inverter();
+  }
 }
 void writeCommand(String printCommand){
   display.setTextSize(3);
@@ -113,14 +130,23 @@ void writeCommand(String printCommand){
   display.display();
 }
 void antiBurn(){
-  display.clearDisplay();
+  display.fillRect(94, 0, 34, 36, BLACK);
+  display.display();
+}
+void inverter(){
+  if ( invertedStatus == 1 ){
+    invertedStatus = 0;
+  } else {
+    invertedStatus = 1;
+  };
+  display.invertDisplay(invertedStatus);
   display.display();
 }
 void serialEvent() {
   while (Serial.available()) {
     char inChar = (char)Serial.read();
     inputString += inChar;
-    if (inChar == '\n') {
+    if (inChar == '|') {
       stringComplete = true;
     }
   }
