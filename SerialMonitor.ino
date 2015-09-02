@@ -13,15 +13,23 @@ int invertedStatus = 0;
 
 const int pinLed = 13;
 const int pinButton = A0;
+const int sButton = A1;
+const int pinLigths = 10;
 String inputString = "";
 boolean stringComplete = false;  
 
 void setup() {
+
+  
   display.begin(SSD1306_SWITCHCAPVCC, 0x3c);
   display.clearDisplay();
 
   display.setTextColor(WHITE);
   pinMode(pinLed, OUTPUT);
+  
+  pinMode(pinLigths, OUTPUT);
+  digitalWrite(pinLigths, LOW);
+
   pinMode(pinButton, INPUT);
   Serial.begin(9600);
   inputString.reserve(200);
@@ -75,35 +83,48 @@ void loop() {
      inputString = "";
      stringComplete = false;
   }
-  
+  int s = analogRead(sButton);
+  if ( s > 0 ){
+    Serial.println(s);
+    if ( s >= 60 && s <= 70 ){
+      int val = digitalRead(pinLigths);
+      Serial.println(val);
+      if ( val > 0 ){
+        digitalWrite(pinLigths, LOW);
+      } else {
+        digitalWrite(pinLigths, HIGH);  
+      }  
+    }
+    delay(150);
+  }
   int c = analogRead(pinButton);
   if ( c > 0  ) {
     display.fillRect(94, 0, 34, 36, BLACK);
-    digitalWrite(pinLed, HIGH);
+    digitalWrite(pinLed, LOW);
     Serial.println(c);
-    if( c >= 160){
+    if( c >= 510){
       Consumer.write(MEDIA_PREVIOUS);
       //PREV
       display.fillTriangle(94, 19 ,124, 4,124, 34, WHITE);
       display.fillRect(94, 4, 4, 30, WHITE);
-    } else if (c >= 140 && c <= 150){
+    } else if (c >= 60 && c <= 65){
       Consumer.write(MEDIA_PLAY_PAUSE);
       //PLAY
       display.fillTriangle(94, 34 ,94, 4,124, 19, WHITE);
-    } else if ( c >= 110 && c <= 120 ){
+    } else if ( c >= 89 && c <= 95 ){
       Consumer.write(MEDIA_NEXT);
       //NEXT
       display.fillTriangle(94, 34 ,94, 4,124, 19, WHITE);
       display.fillRect(121, 4, 4, 30, WHITE);
-    } else if (  c >= 90 && c <= 100 ){
+    } else if (  c >= 116 && c <= 120 ){
       Consumer.write(MEDIA_VOLUME_MUTE);
       //SQ
       display.fillRect(94, 4, 30, 30, WHITE);
-    } else if (   c >= 60 && c <= 70 ){
+    } else if (   c >= 140 && c <= 145 ){
       Consumer.write(MEDIA_VOLUME_DOWN);
       //MINUS
       display.fillRect(94, 15, 30, 8, WHITE);
-    } else if (  c >= 30 && c <= 40 ){
+    } else if (  c >= 165 && c <= 170 ){
       Consumer.write(MEDIA_VOLUME_UP);
       //PLUS
       display.fillRect(94, 15, 30, 8, WHITE);
@@ -151,3 +172,4 @@ void serialEvent() {
     }
   }
 }
+
